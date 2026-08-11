@@ -5,6 +5,7 @@ import { store } from './src/db/dataStore';
 import { SQL_SCHEMA, SCHEMA_DOCS } from './src/db/schemaSql';
 import { pipelineService } from './src/services/seoulDataPipeline';
 import { initBatchCronJob } from './src/cron/batchRunner';
+import { supabaseService } from './src/services/supabaseService';
 
 async function startServer() {
   const app = express();
@@ -283,6 +284,21 @@ async function startServer() {
     }
   });
 
+
+  // 10. Supabase DB Integration & Status API
+  app.get('/api/supabase/status', async (req, res) => {
+    const status = await supabaseService.checkConnection();
+    res.json(status);
+  });
+
+  app.post('/api/supabase/sync', async (req, res) => {
+    try {
+      const result = await supabaseService.syncAllToSupabase();
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
 
   // Vite Middleware integration for development
   if (process.env.NODE_ENV !== 'production') {
