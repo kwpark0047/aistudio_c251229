@@ -51,9 +51,142 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // 1. Users API
+  // 1. Users & Authentication API
   app.get('/api/users', (req, res) => {
     res.json(store.getUsers());
+  });
+
+  app.post('/api/auth/signup', (req, res) => {
+    try {
+      const { name, email, password, role, department, phone, adminCode } = req.body;
+
+      if (!name || !email || !password) {
+        return res.status(400).json({ error: '이름, 이메일, 비밀번호는 필수 입력 항목입니다.' });
+      }
+
+      // Check email duplicate
+      const existingUser = store.getUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
+      if (existingUser) {
+        return res.status(400).json({ error: '이미 가입된 이메일 주소입니다. 로그인해주세요.' });
+      }
+
+      // Admin role code verification
+      let finalRole = role || 'sales';
+      if (finalRole === 'admin') {
+        const validAdminCodes = ['ooh2026', 'admin1234', 'superadmin'];
+        if (!adminCode || !validAdminCodes.includes(adminCode.trim())) {
+          return res.status(403).json({ error: '관리자 가입 보안코드가 일치하지 않습니다. (기본 코드: ooh2026)' });
+        }
+      }
+
+      const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+      const newUser = store.addUser({
+        name,
+        email,
+        password,
+        role: finalRole,
+        department: department || '영업팀',
+        phone: phone || '',
+        status: 'active',
+        lastLoginAt: now,
+        createdAt: new Date().toISOString().split('T')[0],
+      });
+
+      // Log activity
+      store.addLog({
+        type: 'user_created',
+        leadId: newUser.id,
+        salesRepId: newUser.id,
+        salesRepName: newUser.name,
+        description: `새로운 회원가입: ${newUser.name} (${newUser.department} / ${newUser.role === 'admin' ? '관리자' : '영업'})`,
+        timestamp: new Date().toISOString(),
+      });
+
+      res.status(201).json({
+        success: true,
+        message: '회원가입이 정상 완료되었습니다.',
+        user: newUser,
+        token: `token-${newUser.id}-${Date.now()}`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/auth/login', (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: '이메일과 비밀번호를 입력해주세요.' });
+      }
+
+      const user = store.getUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
+
+      if (!user) {
+        return res.status(401).json({ error: '가입되지 않은 이메일 주소입니다.' });
+      }
+
+      // If user has a password set, verify it
+      if (user.password && user.password !== password) {
+        return res.status(401).json({ error: '비밀번호가 일치하지 않습니다. 다시 확인해주세요.' });
+      }
+
+      const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+      store.updateUser(user.id, { lastLoginAt: now });
+      const updatedUser = store.getUserById(user.id) || user;
+
+      store.addLog({
+        type: 'user_login',
+        leadId: updatedUser.id,
+        salesRepId: updatedUser.id,
+        salesRepName: updatedUser.name,
+        description: `시스템 로그인: ${updatedUser.name} (${updatedUser.role === 'admin' ? '관리자' : '영업'})`,
+        timestamp: new Date().toISOString(),
+      });
+
+      res.json({
+        success: true,
+        message: '로그인되었습니다.',
+        user: updatedUser,
+        token: `token-${updatedUser.id}-${Date.now()}`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/auth/reset-password', (req, res) => {
+    const { email, newPassword } = req.body;
+    const user = store.getUsers().find((u) => u.email.toLowerCase() === email?.toLowerCase());
+
+    if (!user) {
+      return res.status(404).json({ error: '등록되지 않은 이메일입니다.' });
+    }
+
+    if (newPassword) {
+      store.updateUser(user.id, { password: newPassword });
+    }
+
+    res.json({
+      success: true,
+      message: `${user.name}님의 비밀번호가 재설정되었습니다. 새 비밀번호로 로그인해주세요.`,
+    });
+  });
+
+  app.post('/api/auth/update-profile', (req, res) => {
+    const { id, name, phone, department, password } = req.body;
+    const user = store.getUserById(id);
+    if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
+
+    const updates: Partial<typeof user> = {};
+    if (name) updates.name = name;
+    if (phone) updates.phone = phone;
+    if (department) updates.department = department;
+    if (password) updates.password = password;
+
+    const updated = store.updateUser(id, updates);
+    res.json({ success: true, message: '프로필 정보가 수정되었습니다.', user: updated });
   });
 
   app.post('/api/users', (req, res) => {

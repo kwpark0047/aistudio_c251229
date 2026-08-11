@@ -8,6 +8,10 @@ export const initialUsers: User[] = [
     email: 'admin@oohcrm.co.kr',
     role: 'admin',
     department: '임원/총괄',
+    phone: '010-1234-5678',
+    password: 'admin1234!',
+    status: 'active',
+    lastLoginAt: '2026-08-11 09:00',
     createdAt: '2026-01-02',
   },
   {
@@ -16,6 +20,10 @@ export const initialUsers: User[] = [
     email: 'chulsoo@oohcrm.co.kr',
     role: 'sales',
     department: '영업 1팀',
+    phone: '010-2345-6789',
+    password: 'sales1234!',
+    status: 'active',
+    lastLoginAt: '2026-08-10 18:30',
     createdAt: '2026-01-10',
   },
   {
@@ -24,6 +32,10 @@ export const initialUsers: User[] = [
     email: 'younghee@oohcrm.co.kr',
     role: 'sales',
     department: '영업 2팀',
+    phone: '010-3456-7890',
+    password: 'sales1234!',
+    status: 'active',
+    lastLoginAt: '2026-08-11 08:15',
     createdAt: '2026-02-01',
   },
   {
@@ -32,6 +44,10 @@ export const initialUsers: User[] = [
     email: 'minsu@oohcrm.co.kr',
     role: 'sales',
     department: '영업 1팀',
+    phone: '010-4567-8901',
+    password: 'sales1234!',
+    status: 'active',
+    lastLoginAt: '2026-08-09 14:20',
     createdAt: '2026-02-15',
   },
 ];
@@ -360,6 +376,10 @@ class DataStore {
   // Users
   getUsers(): User[] {
     return this.users;
+  }
+
+  getUserById(id: string): User | undefined {
+    return this.users.find(u => u.id === id);
   }
 
   addUser(newUser: Omit<User, 'id'>): User {

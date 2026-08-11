@@ -6,7 +6,11 @@ export interface User {
   email: string;
   role: UserRole;
   department: string;
+  phone?: string;
+  password?: string;
   avatarUrl?: string;
+  status?: 'active' | 'pending' | 'suspended';
+  lastLoginAt?: string;
   createdAt: string;
 }
 
@@ -91,7 +95,7 @@ export interface BatchPipelineStatus {
   logs: string[];           // 최근 실행 로그
 }
 
-export type LogType = 'mail' | 'ars' | 'open' | 'click' | 'status_change' | 'batch_pipeline';
+export type LogType = 'mail' | 'ars' | 'open' | 'click' | 'status_change' | 'batch_pipeline' | 'user_created' | 'user_login';
 
 export interface ActivityLog {
   id: string;

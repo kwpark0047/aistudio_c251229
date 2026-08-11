@@ -11,6 +11,8 @@ import { SalesKanbanDashboard } from './components/SalesKanbanDashboard';
 import { ReportLandingPage } from './components/ReportLandingPage';
 import { LogsTable } from './components/LogsTable';
 import { SchemaViewer } from './components/SchemaViewer';
+import { AuthModal } from './components/AuthModal';
+import { UserProfileModal } from './components/UserProfileModal';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function App() {
@@ -47,6 +49,54 @@ export default function App() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Auth Modals State
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  // Load saved session on startup
+  useEffect(() => {
+    try {
+      const savedUserStr = localStorage.getItem('ooh_crm_session_user');
+      if (savedUserStr) {
+        const parsed = JSON.parse(savedUserStr);
+        if (parsed && parsed.id) {
+          setCurrentUser(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse saved user session:', e);
+    }
+  }, []);
+
+  const handleLoginSuccess = (user: User, token: string) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('ooh_crm_session_user', JSON.stringify(user));
+      localStorage.setItem('ooh_crm_session_token', token);
+    } catch (e) {
+      console.error('Session storage error:', e);
+    }
+    showToast(`환영합니다! ${user.name} (${user.role === 'admin' ? '관리자' : '영업'}) 계정으로 접속되었습니다.`);
+    fetchData(); // Refresh users list
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('ooh_crm_session_user');
+    localStorage.removeItem('ooh_crm_session_token');
+    setProfileModalOpen(false);
+    showToast('로그아웃되었습니다.');
+    setTimeout(() => {
+      setAuthModalOpen(true);
+    }, 400);
+  };
+
+  const handleUpdateProfile = (updated: Partial<User>) => {
+    const newObj = { ...currentUser, ...updated };
+    setCurrentUser(newObj);
+    localStorage.setItem('ooh_crm_session_user', JSON.stringify(newObj));
+    showToast('프로필 수정 정보가 적용되었습니다.');
   };
 
   // Fetch initial data from Express backend API
@@ -291,6 +341,8 @@ export default function App() {
         currentUser={currentUser}
         users={users}
         onUserChange={setCurrentUser}
+        onOpenAuthModal={() => setAuthModalOpen(true)}
+        onOpenProfileModal={() => setProfileModalOpen(true)}
       />
 
       {/* Main Content Body */}
@@ -386,6 +438,27 @@ export default function App() {
           <span className="font-semibold">{toastMessage}</span>
         </div>
       )}
+
+      {/* Auth Modal (Login / Signup / Password Reset) */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        users={users}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        currentUser={currentUser}
+        onUpdateProfile={handleUpdateProfile}
+        onLogout={handleLogout}
+        onSwitchUser={() => {
+          setProfileModalOpen(false);
+          setAuthModalOpen(true);
+        }}
+      />
     </div>
   );
 }

@@ -22,6 +22,8 @@ interface HeaderProps {
   currentUser: User;
   users: User[];
   onUserChange: (user: User) => void;
+  onOpenAuthModal?: () => void;
+  onOpenProfileModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -30,6 +32,8 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   users,
   onUserChange,
+  onOpenAuthModal,
+  onOpenProfileModal,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -93,30 +97,30 @@ export const Header: React.FC<HeaderProps> = ({
               })}
             </nav>
 
-            {/* Right User Selector & Mobile Drawer Button */}
+            {/* Right User Selector & Auth Modal Buttons */}
             <div className="flex items-center space-x-2 shrink-0">
-              <div className="bg-slate-800 border border-slate-700 rounded-xl p-1 flex items-center space-x-1 px-2 text-xs">
+              <button
+                onClick={onOpenProfileModal}
+                className="bg-slate-800 hover:bg-slate-700/80 border border-slate-700/80 rounded-xl px-2.5 py-1.5 flex items-center space-x-1.5 text-xs transition-colors cursor-pointer"
+                title="프로필 및 계정 설정"
+              >
                 {currentUser.role === 'admin' ? (
-                  <Shield className="w-3.5 h-3.5 text-amber-400" />
+                  <Shield className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 ) : (
-                  <UserCheck className="w-3.5 h-3.5 text-blue-400" />
+                  <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                 )}
-                <select
-                  id="user-role-select"
-                  value={currentUser.id}
-                  onChange={(e) => {
-                    const selected = users.find((u) => u.id === e.target.value);
-                    if (selected) onUserChange(selected);
-                  }}
-                  className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer py-1"
-                >
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id} className="bg-slate-900 text-slate-200">
-                      {u.name} ({u.role === 'admin' ? 'Admin' : 'Sales'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <span className="font-bold text-slate-100 hidden sm:inline">{currentUser.name}</span>
+                <span className="text-[10px] bg-slate-900 px-1.5 py-0.5 rounded text-slate-400 hidden md:inline">
+                  {currentUser.role === 'admin' ? 'Admin' : 'Sales'}
+                </span>
+              </button>
+
+              <button
+                onClick={onOpenAuthModal}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-2.5 py-1.5 rounded-xl text-xs shadow-sm flex items-center space-x-1 transition-all"
+              >
+                <span>로그인 / 회원가입</span>
+              </button>
 
               {/* Mobile Drawer Menu Button */}
               <button
