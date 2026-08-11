@@ -1,0 +1,6 @@
+{
+  "name": "OOH Ad Sales CRM",
+  "description": "지도 기반 B2B 옥외광고 영업 자동화 CRM - 매체 관리, 타겟 인허가 리드 스코어링, 발송 및 트래킹 로그 관리",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
