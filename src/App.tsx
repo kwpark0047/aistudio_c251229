@@ -13,11 +13,13 @@ import { LogsTable } from './components/LogsTable';
 import { SchemaViewer } from './components/SchemaViewer';
 import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
+import { RoiCalculatorModal } from './components/RoiCalculatorModal';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'map' | 'media' | 'leads' | 'pipeline' | 'ars' | 'kanban' | 'admin' | 'logs' | 'schema'>('kanban');
   const [selectedReportToken, setSelectedReportToken] = useState<string | null>(null);
+  const [roiModalOpen, setRoiModalOpen] = useState(false);
   
   // Data State
   const [users, setUsers] = useState<User[]>([]);
@@ -343,6 +345,7 @@ export default function App() {
         onUserChange={setCurrentUser}
         onOpenAuthModal={() => setAuthModalOpen(true)}
         onOpenProfileModal={() => setProfileModalOpen(true)}
+        onOpenRoiModal={() => setRoiModalOpen(true)}
       />
 
       {/* Main Content Body */}
@@ -388,6 +391,23 @@ export default function App() {
             onAddLead={handleAddLead}
             onUpdateStatus={handleUpdateLeadStatus}
             onSendProposal={handleSendProposal}
+            onAddActivityNote={(leadId, note) => {
+              setLeadsList((prev) =>
+                prev.map((l) => {
+                  if (l.id === leadId) {
+                    const acts = l.activities || [];
+                    const newAct = {
+                      id: `act-${Date.now()}`,
+                      ...note,
+                      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+                    };
+                    return { ...l, activities: [...acts, newAct] };
+                  }
+                  return l;
+                })
+              );
+            }}
+            onShowToast={showToast}
           />
         )}
 
@@ -458,6 +478,13 @@ export default function App() {
           setProfileModalOpen(false);
           setAuthModalOpen(true);
         }}
+      />
+
+      {/* ROI Calculator Modal */}
+      <RoiCalculatorModal
+        isOpen={roiModalOpen}
+        onClose={() => setRoiModalOpen(false)}
+        onShowToast={showToast}
       />
     </div>
   );

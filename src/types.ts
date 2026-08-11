@@ -72,6 +72,37 @@ export interface Lead {
     timeDecayDeduction: number;
     finalScore: number;
   };
+  activities?: ActivityNote[];
+  proposals?: AiProposal[];
+}
+
+export type ActivityType = 'call' | 'meeting' | 'email' | 'proposal' | 'contract' | 'note';
+
+export interface ActivityNote {
+  id: string;
+  leadId: string;
+  type: ActivityType;
+  title: string;
+  content: string;
+  salesRepId: string;
+  salesRepName: string;
+  nextFollowUpDate?: string;
+  createdAt: string;
+}
+
+export interface AiProposal {
+  id: string;
+  leadId: string;
+  companyName: string;
+  targetCategory: string;
+  recommendedMediaIds: string[];
+  recommendedMediaNames: string[];
+  totalMonthlyPrice: number;
+  expectedDailyExposures: number;
+  keyCopywriterPitch: string;
+  proposalLandingUrl: string;
+  messageDraft: string;
+  createdAt: string;
 }
 
 export interface SubwayExitData {

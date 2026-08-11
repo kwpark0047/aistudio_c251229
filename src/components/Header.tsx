@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Layers,
+  Calculator,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -24,6 +25,7 @@ interface HeaderProps {
   onUserChange: (user: User) => void;
   onOpenAuthModal?: () => void;
   onOpenProfileModal?: () => void;
+  onOpenRoiModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -34,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   onUserChange,
   onOpenAuthModal,
   onOpenProfileModal,
+  onOpenRoiModal,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -99,6 +102,17 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Right User Selector & Auth Modal Buttons */}
             <div className="flex items-center space-x-2 shrink-0">
+              {onOpenRoiModal && (
+                <button
+                  onClick={onOpenRoiModal}
+                  className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl px-2.5 py-1.5 flex items-center space-x-1 text-xs font-bold transition-all"
+                  title="OOH ROI & 매출 계산기 시뮬레이터"
+                >
+                  <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">ROI 계산기</span>
+                </button>
+              )}
+
               <button
                 onClick={onOpenProfileModal}
                 className="bg-slate-800 hover:bg-slate-700/80 border border-slate-700/80 rounded-xl px-2.5 py-1.5 flex items-center space-x-1.5 text-xs transition-colors cursor-pointer"

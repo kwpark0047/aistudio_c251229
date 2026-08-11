@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Lead, LeadStatus, Media, User } from '../types';
-import { Target, Plus, Search, Building2, Phone, Calendar, Mail, Zap, TrendingUp, Filter } from 'lucide-react';
+import { Lead, LeadStatus, Media, User, ActivityNote, AiProposal } from '../types';
+import { Target, Plus, Search, Building2, Phone, Calendar, Mail, Zap, TrendingUp, Filter, Sparkles, MessageSquare, Download, FileText } from 'lucide-react';
+import { AiProposalModal } from './AiProposalModal';
+import { ActivityLogModal } from './ActivityLogModal';
 
 interface LeadsTableProps {
   leadsList: Lead[];
@@ -10,6 +12,8 @@ interface LeadsTableProps {
   onAddLead: (newLead: Omit<Lead, 'id'>) => void;
   onUpdateStatus: (id: string, status: LeadStatus) => void;
   onSendProposal: (lead: Lead, media: Media) => void;
+  onAddActivityNote?: (leadId: string, note: Omit<ActivityNote, 'id' | 'createdAt'>) => void;
+  onShowToast?: (msg: string) => void;
 }
 
 export const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -20,6 +24,8 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
   onAddLead,
   onUpdateStatus,
   onSendProposal,
+  onAddActivityNote,
+  onShowToast,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -31,6 +37,10 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProposalLead, setSelectedProposalLead] = useState<Lead | null>(null);
   const [selectedMediaId, setSelectedMediaId] = useState<string>('');
+
+  // Enhanced Modals State
+  const [aiProposalLead, setAiProposalLead] = useState<Lead | null>(null);
+  const [activityLogLead, setActivityLogLead] = useState<Lead | null>(null);
 
   // Form State
   const [companyName, setCompanyName] = useState('');
@@ -53,6 +63,33 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
     const matchesStation = !filterStationOnly || Boolean(l.nearestStation);
     return matchesSearch && matchesCategory && matchesStatus && matchesScore && matchesTier1 && matchesStation;
   });
+
+  const handleExportCsv = () => {
+    const headers = ['ID', '상호명', '업종', '전화번호', '주소', '인근역세권', '일일유동인구', '스코어', '상태', '예상예산(원)'];
+    const rows = filtered.map((l) => [
+      l.id,
+      `"${l.companyName}"`,
+      `"${l.businessCategory}"`,
+      l.phone || '',
+      `"${l.address}"`,
+      l.nearestStation ? `"${l.nearestStation} ${l.nearestExit || ''}"` : '',
+      l.dailyRidership || 0,
+      l.scoring,
+      l.status,
+      l.estimatedBudget,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `ooh_target_leads_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (onShowToast) onShowToast(`${filtered.length}건의 리드 목록이 CSV 파일로 다운로드되었습니다.`);
+  };
 
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -109,13 +146,22 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center space-x-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>신규 타겟 리드 수동 추가</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleExportCsv}
+            className="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-2.5 rounded-xl border border-slate-700 shadow-sm transition-all"
+          >
+            <Download className="w-4 h-4 text-emerald-400" />
+            <span>CSV 엑셀 다운로드</span>
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center space-x-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>신규 타겟 리드 수동 추가</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -299,16 +345,42 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                   </td>
 
                   <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => {
-                        setSelectedProposalLead(l);
-                        if (mediaList.length > 0) setSelectedMediaId(mediaList[0].id);
-                      }}
-                      className="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm transition-all"
-                    >
-                      <Zap className="w-3.5 h-3.5 text-amber-300" />
-                      <span>자동 제안 메일</span>
-                    </button>
+                    <div className="flex items-center justify-end space-x-1.5">
+                      <button
+                        onClick={() => setAiProposalLead(l)}
+                        title="AI 맞춤 옥외광고 제안서 생성"
+                        className="inline-flex items-center space-x-1 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 border border-purple-500/40 text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span className="hidden sm:inline">AI 제안서</span>
+                      </button>
+
+                      <button
+                        onClick={() => setActivityLogLead(l)}
+                        title="영업 일지 & 팔로업 작성"
+                        className="inline-flex items-center space-x-1 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
+                        <span className="hidden sm:inline">영업일지</span>
+                        {l.activities && l.activities.length > 0 && (
+                          <span className="bg-blue-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono">
+                            {l.activities.length}
+                          </span>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedProposalLead(l);
+                          if (mediaList.length > 0) setSelectedMediaId(mediaList[0].id);
+                        }}
+                        title="자동 메일 수동 발송"
+                        className="inline-flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl shadow-sm transition-all"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-amber-300" />
+                        <span className="hidden lg:inline">메일 발송</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -489,6 +561,44 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
           </div>
         </div>
       )}
+      {/* AI Proposal Generator Modal */}
+      <AiProposalModal
+        isOpen={Boolean(aiProposalLead)}
+        onClose={() => setAiProposalLead(null)}
+        lead={aiProposalLead}
+        medias={mediaList}
+        currentUser={currentUser}
+        onShowToast={onShowToast}
+      />
+
+      {/* Activity Log Modal */}
+      <ActivityLogModal
+        isOpen={Boolean(activityLogLead)}
+        onClose={() => setActivityLogLead(null)}
+        lead={activityLogLead}
+        currentUser={currentUser}
+        onAddActivity={(leadId, note) => {
+          if (onAddActivityNote) {
+            onAddActivityNote(leadId, note);
+          }
+          // Update local view
+          if (activityLogLead) {
+            const updatedActs = [
+              ...(activityLogLead.activities || []),
+              {
+                id: `act-${Date.now()}`,
+                ...note,
+                createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+              },
+            ];
+            setActivityLogLead({
+              ...activityLogLead,
+              activities: updatedActs,
+            });
+          }
+        }}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };
